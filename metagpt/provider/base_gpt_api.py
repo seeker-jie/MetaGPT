@@ -4,6 +4,7 @@
 @Time    : 2023/5/5 23:04
 @Author  : alexanderwu
 @File    : base_gpt_api.py
+@Desc    : mashenquan, 2023/8/22. + try catch
 """
 from abc import abstractmethod
 from typing import Optional
@@ -14,7 +15,8 @@ from metagpt.provider.base_chatbot import BaseChatbot
 
 class BaseGPTAPI(BaseChatbot):
     """GPT API abstract class, requiring all inheritors to provide a series of standard capabilities"""
-    system_prompt = 'You are a helpful assistant.'
+
+    system_prompt = "You are a helpful assistant."
 
     def _user_msg(self, msg: str) -> dict[str, str]:
         return {"role": "user", "content": msg}
@@ -41,9 +43,13 @@ class BaseGPTAPI(BaseChatbot):
             message = self._system_msgs(system_msgs) + [self._user_msg(msg)]
         else:
             message = [self._default_system_msg(), self._user_msg(msg)]
-        rsp = await self.acompletion_text(message, stream=True)
-        logger.debug(message)
-        # logger.debug(rsp)
+        try:
+            rsp = await self.acompletion_text(message, stream=True)
+        except Exception as e:
+            logger.exception(f"{e}")
+            logger.info(f"ask:{msg}, error:{e}")
+            raise e
+        logger.info(f"ask:{msg}, anwser:{rsp}")
         return rsp
 
     def _extract_assistant_rsp(self, context):
@@ -110,7 +116,7 @@ class BaseGPTAPI(BaseChatbot):
 
     def messages_to_prompt(self, messages: list[dict]):
         """[{"role": "user", "content": msg}] to user: <msg> etc."""
-        return '\n'.join([f"{i['role']}: {i['content']}" for i in messages])
+        return "\n".join([f"{i['role']}: {i['content']}" for i in messages])
 
     def messages_to_dict(self, messages):
         """objects to [{"role": "user", "content": msg}] etc."""

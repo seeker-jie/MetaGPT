@@ -25,6 +25,7 @@ class SearchEngine:
         run_func: The function to run the search.
         engine: The search engine type.
     """
+
     def __init__(
         self,
         engine: SearchEngineType | None = None,
@@ -33,7 +34,7 @@ class SearchEngine:
         engine = engine or CONFIG.search_engine
         if engine == SearchEngineType.SERPAPI_GOOGLE:
             module = "metagpt.tools.search_engine_serpapi"
-            run_func = importlib.import_module(module).SerpAPIWrapper().run            
+            run_func = importlib.import_module(module).SerpAPIWrapper().run
         elif engine == SearchEngineType.SERPER_GOOGLE:
             module = "metagpt.tools.search_engine_serper"
             run_func = importlib.import_module(module).SerperWrapper().run
