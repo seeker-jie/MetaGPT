@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import re
 from typing import Optional, Union
-
+from PIL import Image
 from openai import APIConnectionError, AsyncOpenAI, AsyncStream
 from openai._base_client import AsyncHttpxClientWrapper
 from openai.types import CompletionUsage
@@ -93,6 +93,13 @@ class OpenAILLM(BaseLLM):
         usage = None
         collected_messages = []
         async for chunk in response:
+            if chunk.usage is not None:
+                usage = CompletionUsage(**chunk.usage)
+            chunk_message = chunk.choices[0].delta.content or '' if chunk.choices else ''  # extract the message
+            finish_reason = (
+                chunk.choices[0].finish_reason if chunk.choices and hasattr(chunk.choices[0], 'finish_reason') else None
+            )
+            log_llm_stream(chunk_message)
             chunk_message = chunk.choices[0].delta.content or "" if chunk.choices else ""  # extract the message
             finish_reason = (
                 chunk.choices[0].finish_reason if chunk.choices and hasattr(chunk.choices[0], "finish_reason") else None
