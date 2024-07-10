@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import re
 from typing import Optional, Union
-
+from PIL import Image
 from openai import APIConnectionError, AsyncOpenAI, AsyncStream
 from openai._base_client import AsyncHttpxClientWrapper
 from openai.types import CompletionUsage
@@ -93,19 +93,25 @@ class OpenAILLM(BaseLLM):
         usage = None
         collected_messages = []
         async for chunk in response:
-            chunk_message = chunk.choices[0].delta.content or "" if chunk.choices else ""  # extract the message
+            chunk_message = chunk.choices[0].delta.content or '' if chunk.choices else ''  # extract the message
             finish_reason = (
-                chunk.choices[0].finish_reason if chunk.choices and hasattr(chunk.choices[0], "finish_reason") else None
+                chunk.choices[0].finish_reason if chunk.choices and hasattr(chunk.choices[0], 'finish_reason') else None
             )
             log_llm_stream(chunk_message)
             collected_messages.append(chunk_message)
             if finish_reason:
-                if hasattr(chunk, "usage") and chunk.usage is not None:
+                if hasattr(chunk, 'usage') and chunk.usage is not None:
                     # Some services have usage as an attribute of the chunk, such as Fireworks
                     if isinstance(chunk.usage, CompletionUsage):
                         usage = chunk.usage
                     else:
                         usage = CompletionUsage(**chunk.usage)
+                elif hasattr(chunk.choices[0], 'usage') and chunk.choices[0].usage is not None:
+                    # The usage of some services is an attribute of chunk.choices[0], such as Moonshot
+                    usage = CompletionUsage(**chunk.choices[0].usage)
+                elif 'openrouter.ai' in self.config.base_url:
+                    # due to it get token cost from api
+                    usage = await get_openrouter_tokens(chunk)
                 elif hasattr(chunk.choices[0], "usage"):
                     # The usage of some services is an attribute of chunk.choices[0], such as Moonshot
                     usage = CompletionUsage(**chunk.choices[0].usage)
